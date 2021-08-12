@@ -1,19 +1,18 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: >
-  Dalio Image Inference by S3 triggered Lambda function
+  Image Inference by S3 triggered Lambda function
 Parameters:
   InputBucketName:
     Type: String
-    Default: dalio-inference-input
+    Default: image-inference-input
     Description: "REQUIRED: The S3 Bucket to upload input image."
   OuputBucketName:
     Type: String
-    Default: dalio-inference-output
+    Default: image-inference-output
     Description: "REQUIRED: The S3 Bucket to export inference output."
   SageMakerInferenceEndpointName:
     Type: String
-    Default: dalio-2021-08-12-15-01-16-082
 
 Resources:
   InferenceFunction:
