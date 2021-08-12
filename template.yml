@@ -1,0 +1,74 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Dalio Image Inference by S3 triggered Lambda function
+Parameters:
+  InputBucketName:
+    Type: String
+    Default: dalio-inference-input
+    Description: "REQUIRED: The S3 Bucket to upload input image."
+  OuputBucketName:
+    Type: String
+    Default: dalio-inference-output
+    Description: "REQUIRED: The S3 Bucket to export inference output."
+  SageMakerInferenceEndpointName:
+    Type: String
+    Default: dalio-2021-08-12-15-01-16-082
+
+Resources:
+  InferenceFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: lambda_function.lambda_handler
+      Runtime: python3.7
+      CodeUri: inference/
+      MemorySize: 10240
+      Timeout: 120
+      Environment:
+        Variables:
+          AWSREGION: !Sub ${AWS::Region}
+          InputBucket: !Sub ${InputBucketName}-${AWS::AccountId}-${AWS::Region}
+          OuputBucket: !Sub ${OuputBucketName}-${AWS::AccountId}-${AWS::Region}
+          ENDPOINT_NAME: !Ref SageMakerInferenceEndpointName
+          ImageHeight: 512
+          ImageWidth: 512
+          ImageNumberofChannels: 1
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Sub ${InputBucketName}-${AWS::AccountId}-${AWS::Region}
+        - S3CrudPolicy:
+            BucketName: !Sub ${OuputBucketName}-${AWS::AccountId}-${AWS::Region}
+        - Statement:
+          - Sid: SageMakerInferenceEndpoint
+            Effect: Allow
+            Action:
+              - sagemaker:InvokeEndpoint
+            Resource: '*'
+      Events:
+        S3NewObjectEvent:
+          Type: S3
+          Properties:
+            Bucket: !Ref InputBucket
+            Events: s3:ObjectCreated:*
+
+  InputBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub ${InputBucketName}-${AWS::AccountId}-${AWS::Region}
+      BucketEncryption: 
+        ServerSideEncryptionConfiguration: 
+        - ServerSideEncryptionByDefault:
+            SSEAlgorithm: AES256
+
+  OutputBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub ${OuputBucketName}-${AWS::AccountId}-${AWS::Region}
+      BucketEncryption: 
+        ServerSideEncryptionConfiguration: 
+        - ServerSideEncryptionByDefault:
+            SSEAlgorithm: AES256
+
+Outputs:
+  InferenceFunction:
+    Value: !GetAtt InferenceFunction.Arn
